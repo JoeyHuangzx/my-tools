@@ -3,7 +3,7 @@ import path from 'path';
 
 const nameArr: string[] = [];
 
-function traverseDirectory(dirPath: string) {
+export function traverseDirectory(dirPath: string) {
     const items = fs.readdirSync(dirPath);
     const result: any = {};
 
