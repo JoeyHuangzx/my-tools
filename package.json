@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "一个前端/游戏开发的开发工具集",
   "main": "index.js",
+  
   "scripts": {
     "dev": "tsc && node dist/index.js",
     "start": "node dist/index.js",
