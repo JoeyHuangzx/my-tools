@@ -7,10 +7,13 @@ const model = "ep-20250210214112-2wldn";
 export async function askDoubao(query: string) {
   console.log("Asking Doubao...");
   
-  const response = await openai.chat.completions.create({
+11  const stream = await openai.chat.completions.create({
     model,
     messages:[{content: query, role: "user"}],
-    
+    stream:true
   });
-  console.log(response.choices[0].message.content);
+  for await (const part of stream) {
+    process.stdout.write(part.choices[0]?.delta?.content || '');
+  }
+  process.stdout.write('\n');
 }

@@ -11,5 +11,5 @@ console.log(args[2]);
 // fileMover('test.txt','/Users/huangzuxiang/Desktop/test.txt');
 // checkAndCreateDir(args[2],__dirname);
 console.log(process.env.OPENAI_DOUBAO_API_KEY);
-askDoubao('4个月大的小孩经常醒，可能是因为什么呢');
+askDoubao(args[2]);
 
