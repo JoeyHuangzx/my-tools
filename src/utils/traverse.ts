@@ -15,10 +15,11 @@ export function traverseDirectory(dirPath: string) {
         if (stat.isDirectory()) {
             onlyFiles = false;
             result[item] = traverseDirectory(itemPath);
-            nameArr.push(item);
+           
         } else {
             result[item] = null;
-
+            nameArr.push(itemPath);
+            console.log(itemPath);
         }
     })
     if (onlyFiles) {
@@ -32,14 +33,14 @@ export function exportDirectoryToJson(dirPath: string, outputFilePath: string) {
     const directoryStructure: Info = traverseDirectory(dirPath);
     if (!Array.isArray(directoryStructure)) {
         const jsonContent = JSON.stringify(directoryStructure.result, null, 2);
-        const nameJsonContent = JSON.stringify(nameArr, null, 2);
-        console.log(nameArr);
+        
         fs.writeFileSync(outputFilePath, jsonContent, 'utf-8');
-        fs.writeFileSync('output-names.json', nameJsonContent, 'utf-8');
-        console.log(`文件夹结构已成功导出到 ${outputFilePath}`);
+        // console.log(`文件夹结构已成功导出到 ${outputFilePath}`);
     }
-
-
+    const nameJsonContent = JSON.stringify(nameArr, null, 2);
+    console.log(nameArr);
+    fs.writeFileSync('output-paths.json', nameJsonContent, 'utf-8');
+    console.log('成功导出');
 }
 
 
