@@ -7,7 +7,7 @@ const model = "ep-20250210214112-2wldn";
 export async function askDoubao(query: string) {
   console.log("Asking Doubao...");
   
-11  const stream = await openai.chat.completions.create({
+const stream = await openai.chat.completions.create({
     model,
     messages:[{content: query, role: "user"}],
     stream:true
