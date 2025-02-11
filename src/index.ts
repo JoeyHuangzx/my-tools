@@ -1,3 +1,4 @@
+import { askChatgpt } from './ai/chatgpt';
 import { askDeepseek } from './ai/deepseek';
 import { askDoubao } from './ai/doubao';
 import { checkAndCreateDir, fileMover } from './utils/fileMover';
@@ -12,6 +13,6 @@ console.log(args[2]);
 // exportDirectoryToJson(args[2],'output.json')
 // fileMover('test.txt','/Users/huangzuxiang/Desktop/test.txt');
 // checkAndCreateDir(args[2],__dirname);
-console.log(process.env.OPENAI_DOUBAO_API_KEY);
-// askDoubao(args[2]);
+// console.log(process.env.OPENAI_DOUBAO_API_KEY);
+askDoubao(process.argv[2]);
 

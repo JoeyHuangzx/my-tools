@@ -1,15 +1,14 @@
-import OpenAI from "openai";
-
-const openai = new OpenAI({baseURL:'https://api.deepseek.com', apiKey:'sk-3c773197dbaf42248413ffb94515b89d' });
-// console.log(process.env.OPENAI_API_KEY);
-const model = "deepseek-chat";
+import OpenAI from 'openai';
 
 export async function askDeepseek(query: string) {
-  console.log("Asking Deepseek...");
-  
+  console.log('Asking Deepseek...');
+  const openai = new OpenAI({ baseURL: 'https://api.deepseek.com', apiKey: process.env.OPENAI_API_KEY });
+  // console.log(process.env.OPENAI_API_KEY);
+  const model = 'deepseek-chat';
+
   const response = await openai.chat.completions.create({
     model,
-    messages:[{content: query, role: "system"}],
+    messages: [{ content: query, role: 'system' }],
   });
   console.log(response.choices[0].message.content);
 }
