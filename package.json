@@ -7,7 +7,8 @@
     "dev": "tsc && node dist/index.js",
     "start": "node dist/index.js",
     "build": "tsc",
-    "doubao":"tsc && node dist/ai.js"
+    "doubao": "tsc && node dist/ai.js",
+    "tiny": "tsc && node dist/tinyTest.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,7 @@
   "dependencies": {
     "@babel/plugin-proposal-decorators": "^7.25.9",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "openai": "^4.83.0"
   }

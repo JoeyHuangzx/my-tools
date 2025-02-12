@@ -87,6 +87,7 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "cSpell.words": [
     "Deepseek",
-    "Doubao"
+    "Doubao",
+    "TINYPNG"
   ]
 }
