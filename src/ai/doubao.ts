@@ -18,10 +18,10 @@ export async function askDoubao(query: string) {
   // const outputContent = stream.choices[0].message.content || '';
    // 处理问题，使其成为合法的文件名
    const sanitizedQuestion = query.replace(/[\\/*?:"<>|]/g, '');
-   const fileName = `${sanitizedQuestion}.md`;
+   const fileName = `ASK/doubao-${sanitizedQuestion}.md`;
 
    // 定义要写入的文件路径
-   const filePath = path.join(__dirname, fileName);
+  //  const filePath = path.join(__dirname, fileName);
 
    // 将内容写入文件
   //  fs.writeFile(filePath, JSON.stringify(content,null,2), 'utf8', (err) => {
@@ -34,7 +34,7 @@ export async function askDoubao(query: string) {
   
   // 逐行写入文件
   const lines:string[] = [];
-  const writeStream=fs.createWriteStream(filePath,'utf-8');
+  const writeStream=fs.createWriteStream(fileName,'utf-8');
   writeStream.write('## '+sanitizedQuestion+'\n');
   for await (const part of stream) {
     process.stdout.write(part.choices[0]?.delta?.content || '');
