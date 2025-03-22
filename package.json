@@ -9,7 +9,8 @@
     "build": "tsc",
     "file": "tsc && node dist/fileUtil.js",
     "ai": "tsc && node dist/ai.js",
-    "tiny": "tsc && node dist/tinyTest.js"
+    "tiny": "tsc && node dist/tinyTest.js",
+    "leetcode": "tsc && node dist/leetcode/index.js"
   },
   "keywords": [],
   "author": "",

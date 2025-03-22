@@ -23,6 +23,7 @@ export function traverseDirectory2(dir: string, parent = '') {
       // 收集文件名
       if (!result.files) result.files = [];
       result.files.push(item);
+      nameArr.push(item);
     }
   });
 
@@ -39,8 +40,10 @@ export function exportDirectoryToJson(dirPath: string, outputFilePath: string) {
   const result = traverseDirectory2(dirPath);
 
   const jsonContent = JSON.stringify(result, null, 2);
+  const nameJsonContent = JSON.stringify(nameArr, null, 2);
   console.log(jsonContent);
   fs.writeFileSync(outputFilePath, jsonContent, 'utf-8');
+  fs.writeFileSync(`names-${outputFilePath}`, nameJsonContent, 'utf-8');
   // if (!Array.isArray(directoryStructure)) {
   //     const jsonContent = JSON.stringify(directoryStructure.result, null, 2);
   //     fs.writeFileSync(outputFilePath, jsonContent, 'utf-8');
