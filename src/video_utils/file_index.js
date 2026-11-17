@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { spawn  } = require('child_process');
+const { spawn, execFile } = require('child_process');
 
 
 
@@ -66,37 +66,100 @@ function readFile(filePath) {
   });
 }
 
-function download(hlsUrls){
-  hlsUrls.forEach((obj, index) => {
-    const outputFilename ="video/"+ obj.title;
-    console.log(outputFilename);
-  
-    const ffmpegCommand = 'ffmpeg';
-    // const parseUrl=parseString(hlsUrl);
-    const ffmpegArgs = ['-i', obj.source, '-c', 'copy', '-bsf:a', 'aac_adtstoasc', outputFilename];
+// surrit.com 由 Cloudflare 做 TLS 指纹识别：ffmpeg(GnuTLS)/Node(OpenSSL) 会被 403/挑战页拦截，
+// 只有 curl.exe(Schannel) 可以通过，因此所有 HTTP 请求走 curl，ffmpeg 仅做本地合并。
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+const REFERER = 'https://missav.ws/';
 
-    const ffmpegProcess = spawn(ffmpegCommand, ffmpegArgs);
+function curlText(url) {
+  return new Promise((resolve, reject) => {
+    execFile('curl.exe', ['-s', '--fail', '--retry', '3', '--connect-timeout', '15', '--max-time', '30', '-A', UA, '-e', REFERER, url],
+      { maxBuffer: 20 * 1024 * 1024 }, (err, stdout) => (err ? reject(err) : resolve(stdout)));
+  });
+}
 
-    /* ffmpegProcess.stdout.on('data', (data) => {
-        console.log(`stdout (${outputFilename}): ${data}`);
-    }); */
+function curlDownloadBatch(urls, dir) {
+  return new Promise((resolve, reject) => {
+    const args = ['-s', '--fail', '--retry', '3', '--connect-timeout', '15', '--max-time', '180',
+      '--parallel', '--parallel-max', '8',
+      '-A', UA, '-e', REFERER, '--remote-name', '--output-dir', dir, ...urls];
+    const p = spawn('curl.exe', args);
+    p.on('close', code => (code === 0 ? resolve() : reject(new Error(`curl 批量下载退出码 ${code}`))));
+  });
+}
 
-    ffmpegProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      const timeMatch = output.match(/time=(\d+:\d+:\d+\.\d+)/);
-      if (timeMatch) {
-        console.log(`file:${outputFilename}, Current time: ${timeMatch[1]}`);
-      }
-    });
+async function downloadOne(obj, index) {
+  const outputFilename = 'video/' + obj.title;
+  console.log(`\n[${index + 1}] ${outputFilename}`);
 
+  // 1. 取 master playlist，选最高分辨率（无 STREAM-INF 则本身就是媒体 playlist）
+  const master = await curlText(obj.source);
+  const lines = master.split(/\r?\n/);
+  let best = null, bestArea = -1, pendingInfo = null;
+  for (const line of lines) {
+    if (line.startsWith('#EXT-X-STREAM-INF')) {
+      const m = line.match(/RESOLUTION=(\d+)x(\d+)/);
+      pendingInfo = m ? { w: +m[1], h: +m[2] } : { w: 0, h: 0 };
+    } else if (line && !line.startsWith('#') && pendingInfo) {
+      const area = pendingInfo.w * pendingInfo.h;
+      if (area > bestArea) { bestArea = area; best = line; }
+      pendingInfo = null;
+    }
+  }
+  const variantUrl = best ? new URL(best, obj.source).href : obj.source;
+  console.log(`    选中流: ${variantUrl}`);
+
+  // 2. 取媒体 playlist，提取分片列表
+  const media = best ? await curlText(variantUrl) : master;
+  const segments = media.split(/\r?\n/).filter(l => l && !l.startsWith('#'));
+  console.log(`    分片数量: ${segments.length}`);
+
+  // 3. curl 并发批量下载分片
+  const tmpDir = path.join('video', `.tmp-${index}-${Date.now()}`);
+  fs.mkdirSync(tmpDir, { recursive: true });
+  const BATCH = 50;
+  for (let i = 0; i < segments.length; i += BATCH) {
+    const urls = segments.slice(i, i + BATCH).map(s => new URL(s, variantUrl).href);
+    await curlDownloadBatch(urls, tmpDir);
+    console.log(`    已下载分片 ${Math.min(i + BATCH, segments.length)}/${segments.length}`);
+  }
+
+  // 4. 按播放顺序合并分片为单个 TS，再由 ffmpeg 本地转封装为 mp4
+  const combined = path.join(tmpDir, 'combined.ts');
+  for (const s of segments) {
+    fs.appendFileSync(combined, fs.readFileSync(path.join(tmpDir, path.basename(s))));
+  }
+  await new Promise((resolve) => {
+    const ffmpegProcess = spawn('ffmpeg', ['-y', '-i', combined, '-c', 'copy', '-bsf:a', 'aac_adtstoasc', outputFilename]);
+    let errBuf = '';
+    ffmpegProcess.stderr.on('data', (data) => { errBuf += data.toString(); });
     ffmpegProcess.on('close', (code) => {
-        if (code === 0) {
-            console.log(`Video downloaded successfully: ${outputFilename}`);
-        } else {
-            console.error(`ffmpeg process exited with code ${code} for ${outputFilename}`);
-        }
+      if (code === 0) {
+        console.log(`Video downloaded successfully: ${outputFilename}`);
+      } else {
+        console.error(`ffmpeg process exited with code ${code} for ${outputFilename}`);
+        console.error(`--- stderr tail (last 2000 chars) ---`);
+        console.error(errBuf.slice(-2000));
+        console.error(`--- stderr end ---`);
+      }
+      resolve();
     });
-});
+  });
+
+  // 5. 清理临时分片目录
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
+
+async function download(hlsUrls) {
+  fs.mkdirSync('video', { recursive: true });
+  for (let i = 0; i < hlsUrls.length; i++) {
+    try {
+      await downloadOne(hlsUrls[i], i);
+    } catch (e) {
+      console.error(`下载失败: ${hlsUrls[i].title}\n  ${e.message}`);
+    }
+  }
+  console.log('\n全部处理完成');
 }
 
 function parseString(str){
